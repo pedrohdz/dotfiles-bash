@@ -34,13 +34,15 @@ function auth_sock() {
 }
 
 function tmux_cmd() {
-  local l_new_session="${1:-FALSE}"
+  local l_new_session=$1
+  local l_new_session_name=$2
   push_tmux_exec tmux
-  sessions=$((tmux list-sessions 2> /dev/null | wc -l) || true)
-  if [[ "$l_new_session" == 'TRUE' ]]; then
+  sessions=$( (tmux list-sessions 2> /dev/null | wc -l) || true)
+  if [[ "$l_new_session" == 'TRUE' || $sessions -eq 0 ]]; then
     push_tmux_cmd 'new-session'
-  elif [[ $sessions -eq 0 ]]; then
-    push_tmux_cmd 'new-session'
+    if [[ -n "$l_new_session_name" ]]; then
+      push_tmux_cmd 'rename-session' "$l_new_session_name"
+    fi
   elif [[ $sessions -eq 1 ]]; then
     push_tmux_cmd 'attach-session'
   elif [[ $sessions -gt 1 ]]; then
@@ -55,7 +57,7 @@ function tmux_cmd() {
 function display_help() {
   # TODO - Add a little more detail.
   cat <<EOT
-Usage: $1 [-h|--help] [-v|--verbose] [-n|--new-session]
+Usage: $1 [-h] [-v] [-n[SESSION_NAME]]
 EOT
 }
 
@@ -64,17 +66,18 @@ EOT
 # Parse command line arguments
 #------------------------------------------------------------------------------
 _command_name=$(basename "$0")
-_args_temp=$(getopt --options vnh --longoptions verbose,new-session,help \
-  --name $_command_name -- "$@")
+_args_temp=$(getopt --name "$_command_name" --options 'vn::h' -- "$@")
 eval set -- "$_args_temp"
 
 _new_session="FALSE"
+_new_session_name=""
 _verbose="FALSE"
 while true ; do
   case "$1" in
     -n|--new-session)
       _new_session="TRUE"
-      shift
+      _new_session_name="$2"
+      shift; shift
       ;;
     -v|--verbose)
       _verbose="TRUE"
@@ -99,7 +102,7 @@ done
 # Process
 #------------------------------------------------------------------------------
 auth_sock
-tmux_cmd "$_new_session"
+tmux_cmd "$_new_session" "$_new_session_name"
 
 #------------------------------------------------------------------------------
 # Execute

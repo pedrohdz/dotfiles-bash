@@ -3,11 +3,6 @@ set -o errexit
 set -o pipefail
 set -o nounset
 
-#------------------------------------------------------------------------------
-# Globals
-#------------------------------------------------------------------------------
-AUTH_SOCK_LINK="$HOME/.ssh/sockets/ssh_auth_sock"
-
 
 #------------------------------------------------------------------------------
 # Functions
@@ -24,13 +19,6 @@ function push_tmux_cmd() {
 declare -a _tmux_exec
 function push_tmux_exec() {
   _tmux_exec+=("$@")
-}
-
-function auth_sock() {
-  if [[ -n "${SSH_AUTH_SOCK:-}" && -S "$SSH_AUTH_SOCK" ]]; then
-    ln -fs "$SSH_AUTH_SOCK" "$AUTH_SOCK_LINK"
-    push_tmux_exec env SSH_AUTH_SOCK="$AUTH_SOCK_LINK"
-  fi
 }
 
 function tmux_cmd() {
@@ -101,7 +89,6 @@ done
 #------------------------------------------------------------------------------
 # Process
 #------------------------------------------------------------------------------
-auth_sock
 tmux_cmd "$_new_session" "$_new_session_name"
 
 #------------------------------------------------------------------------------
